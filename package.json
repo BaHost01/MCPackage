@@ -1,0 +1,20 @@
+{
+  "name": "mc-bedrock-cli",
+  "version": "2.2.0",
+  "description": "Minecraft Bedrock CLI – audited, safe and extensible",
+  "type": "module",
+  "bin": {
+    "mc": "./bin/mc.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "fast-glob": "^3.3.3",
+    "fs-extra": "^11.3.3",
+    "inquirer": "^13.1.0"
+  }
+}
