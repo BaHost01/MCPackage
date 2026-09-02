@@ -269,7 +269,7 @@ ${Object.entries(GENERATORS)
     if (manifestsSynced) log.info('Updated mcpackage.json and manifests to enable scripting.');
     if (generator.after && written.length) {
       log.blank();
-      log.print(`  ${generator.after(ctx)}`);
+      log.text(`  ${generator.after(ctx)}`);
     }
   },
 };

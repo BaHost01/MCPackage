@@ -148,12 +148,12 @@ never overwritten.`,
       log.print(JSON.stringify({ root: targetDir, created, config }, null, 2));
       return;
     }
-    log.ok(`Created ${c.bold(answers.name)} in ${c.cyan(project.relative(targetDir) === '.' ? targetDir : targetDir)}`);
+    log.ok(`Created ${c.bold(answers.name)} in ${c.cyan(targetDir)}`);
     for (const file of created) log.item(file);
     log.blank();
-    log.print(c.bold('Next steps'));
+    log.text(c.bold('Next steps'));
     const cdHint = path.resolve(cwd) !== targetDir ? `  cd ${path.relative(cwd, targetDir) || '.'}\n` : '';
-    log.print(`${cdHint}  mcpackage add entity my_mob     ${c.dim('# scaffold content')}\n  mcpackage lint                  ${c.dim('# check for problems')}\n  mcpackage watch                 ${c.dim('# deploy to Minecraft on every change')}\n  mcpackage build                 ${c.dim('# create dist/*.mcaddon')}`);
+    log.text(`${cdHint}  mcpackage add entity my_mob     ${c.dim('# scaffold content')}\n  mcpackage lint                  ${c.dim('# check for problems')}\n  mcpackage watch                 ${c.dim('# deploy to Minecraft on every change')}\n  mcpackage build                 ${c.dim('# create dist/*.mcaddon')}`);
     if (answers.scripts) {
       log.blank();
       log.info(`Run ${c.cyan('npm install')} in the project to get editor IntelliSense for @minecraft/server.`);
