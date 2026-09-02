@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/BaHost01/MCPackage/master/schema/mcpackage.schema.json",
+  "title": "mcpackage project configuration",
+  "description": "Configuration for a Minecraft Bedrock add-on project managed by mcpackage.",
+  "type": "object",
+  "required": ["name"],
+  "additionalProperties": true,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name of the add-on. Manifests get ' BP' / ' RP' appended."
+    },
+    "namespace": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "not": { "const": "minecraft" },
+      "default": "custom",
+      "description": "Identifier namespace used by scaffolded content (e.g. 'cool' → 'cool:ghost')."
+    },
+    "description": { "type": "string", "description": "Short description shown in-game." },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "default": "1.0.0",
+      "description": "Add-on version. Written to header.version and every module.version."
+    },
+    "minEngineVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "default": "1.26.40",
+      "description": "Minimum Minecraft engine version (header.min_engine_version)."
+    },
+    "authors": { "type": "array", "items": { "type": "string" }, "description": "Written to metadata.authors." },
+    "license": { "type": "string", "description": "Written to metadata.license." },
+    "url": { "type": "string", "description": "Written to metadata.url." },
+    "packs": {
+      "type": "object",
+      "description": "Pack folders relative to the project root.",
+      "additionalProperties": false,
+      "properties": {
+        "behavior": { "type": "string", "default": "packs/behavior" },
+        "resource": { "type": "string", "default": "packs/resource" },
+        "skin": { "type": "string" }
+      }
+    },
+    "scripts": {
+      "type": ["object", "null"],
+      "description": "Enables the Script API in the behavior pack. Omit or set to null to disable.",
+      "additionalProperties": false,
+      "properties": {
+        "entry": { "type": "string", "default": "scripts/main.js", "description": "Entry file, relative to the behavior pack." },
+        "modules": {
+          "type": "object",
+          "description": "Script module dependencies and versions, e.g. { \"@minecraft/server\": \"2.9.0\" }. Use a *-beta version to require the Beta APIs experiment.",
+          "additionalProperties": { "type": ["string", "boolean"] }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Extra manifest dependencies added verbatim to every pack.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uuid": { "type": "string" },
+          "module_name": { "type": "string" },
+          "version": { "type": ["string", "array"] }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Manifest capabilities (managed by `mcpackage experimental`).",
+      "items": { "type": "string", "enum": ["script_eval", "chemistry", "editorExtension", "experimental_custom_ui", "raytraced", "pbr"] },
+      "uniqueItems": true
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outDir": { "type": "string", "default": "dist", "description": "Where .mcaddon/.mcpack files are written." },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns (relative to each pack) to leave out of builds and deployments."
+        },
+        "linkPacks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Make the behavior and resource packs depend on each other so enabling one enables both."
+        }
+      }
+    }
+  }
+}

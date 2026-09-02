@@ -1,0 +1,27 @@
+# Dependencies (this project has none, but keep local experiments out of git)
+node_modules/
+
+# Build output
+dist/
+*.mcaddon
+*.mcpack
+*.mcworld
+*.tgz
+
+# Test scratch space
+.tmp/
+coverage/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
