@@ -3,33 +3,43 @@ name: Node.js Package
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  verify:
+    name: Verify package
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
-      - run: npm ci
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
       - run: npm test
+      - run: npm run check
 
   publish-npm:
-    needs: build
+    name: Publish to npm
+    if: github.event_name == 'release'
+    needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org/
-          cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
