@@ -6,7 +6,7 @@
   "bin": { "mcpackage": "bin/mcpackage.js", "mcpkg": "bin/mcpackage.js" },
   "files": ["bin", "src", "schema"],
   "engines": { "node": ">=20" },
-  "scripts": { "test": "node --test", "check": "node --check bin/mcpackage.js && node bin/mcpackage.js version" },
+  "scripts": { "test": "node --test test/v4.test.js", "check": "node --check bin/mcpackage.js && node bin/mcpackage.js version" },
   "keywords": ["minecraft", "bedrock", "addon", "mcaddon", "cli"],
   "license": "MIT",
   "publishConfig": { "access": "public", "provenance": true }
