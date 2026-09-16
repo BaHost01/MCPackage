@@ -1,0 +1,13 @@
+# Default owner for the repository
+* @BaHost01
+
+# Core package and CLI
+/src/ @BaHost01
+/bin/ @BaHost01
+/package.json @BaHost01
+
+# CI, security and repository policy
+/.github/ @BaHost01
+/SECURITY.md @BaHost01
+/CONTRIBUTING.md @BaHost01
+/SUPPORT.md @BaHost01
