@@ -5,13 +5,8 @@ import { walk, isWithin } from './core.js';
 function u16(n) { return Buffer.from([n & 255, (n >>> 8) & 255]); }
 function u32(n) { return Buffer.from([n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255]); }
 function crc32(buf) { let c = 0xffffffff; for (const b of buf) { c ^= b; for (let i = 0; i < 8; i++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1)); } return (c ^ 0xffffffff) >>> 0; }
-
-function normalizeIgnore(lines) {
-  return lines.map((line) => line.trim()).filter((line) => line && !line.startsWith('#')).map((line) => line.replace(/^\.\//, '').replace(/\/$/, ''));
-}
-function ignored(name, patterns) {
-  return patterns.some((p) => name === p || name.startsWith(`${p}/`) || (p.startsWith('*') && name.endsWith(p.slice(1))));
-}
+function normalizeIgnore(lines) { return lines.map((line) => line.trim()).filter((line) => line && !line.startsWith('#')).map((line) => line.replace(/^\.\//, '').replace(/\/$/, '')); }
+function ignored(name, patterns) { return patterns.some((p) => name === p || name.startsWith(`${p}/`) || (p.startsWith('*') && name.endsWith(p.slice(1)))); }
 
 export async function zipFiles(entries, output) {
   const chunks = [], central = []; let offset = 0;
@@ -29,6 +24,8 @@ export async function zipFiles(entries, output) {
 export async function zipDirectory(root, output, options = {}) {
   const rootPath = path.resolve(root);
   if (!isWithin(rootPath, rootPath)) throw new Error('Invalid ZIP root.');
+  const rootStat = await fs.lstat(rootPath);
+  if (rootStat.isSymbolicLink()) throw new Error(`Symlink is not allowed as a ZIP root: ${rootPath}`);
   const ignoreFile = path.join(rootPath, options.ignoreFile || '.mcpackageignore');
   let patterns = [];
   try { patterns = normalizeIgnore((await fs.readFile(ignoreFile, 'utf8')).split(/\r?\n/)); } catch {}
