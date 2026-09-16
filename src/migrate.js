@@ -4,10 +4,18 @@ import { exists, readJson, writeJson, slug, uuid, safeProjectPath } from './core
 import { syncManifests } from './project.js';
 import { McpackageError } from './errors.js';
 
-async function moveIfPresent(from, to) {
+async function moveContents(from, to) {
   if (!(await exists(from))) return false;
-  await fs.mkdir(path.dirname(to), { recursive: true });
-  await fs.rename(from, to);
+  const entries = await fs.readdir(from, { withFileTypes: true });
+  await fs.mkdir(to, { recursive: true });
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) throw new McpackageError(`Symlink is not allowed during migration: ${entry.name}`, { code: 'SYMLINK_NOT_ALLOWED' });
+    const source = path.join(from, entry.name);
+    const target = path.join(to, entry.name);
+    if (await exists(target)) throw new McpackageError(`Migration would overwrite an existing file: ${target}`, { code: 'MIGRATION_CONFLICT' });
+    await fs.rename(source, target);
+  }
+  await fs.rm(from, { recursive: true, force: true });
   return true;
 }
 
@@ -20,12 +28,10 @@ export async function migrateProject(cwd, options = {}) {
     throw new McpackageError('No legacy mc-config.json was found.', { code: 'LEGACY_CONFIG_NOT_FOUND', hint: 'Run this command from a v2 MCPackage project.' });
   }
   if (await exists(modernFile)) throw new McpackageError('A v4 mcpackage.json already exists.', { code: 'V4_CONFIG_EXISTS', hint: 'Remove or back up the existing v4 configuration before migrating.' });
-
   let legacy;
   try { legacy = await readJson(legacyFile); } catch (cause) { throw new McpackageError('The legacy configuration is invalid JSON.', { code: 'INVALID_JSON', cause }); }
+  if (!legacy || typeof legacy !== 'object' || Array.isArray(legacy)) throw new McpackageError('The legacy configuration must contain a JSON object.', { code: 'INVALID_CONFIG' });
   const name = String(legacy.name || legacy.displayName || path.basename(root));
-  const behavior = safeProjectPath(root, 'packs/behavior', 'behavior pack path');
-  const resource = safeProjectPath(root, 'packs/resource', 'resource pack path');
   const project = {
     name,
     namespace: slug(legacy.namespace || name),
@@ -38,16 +44,18 @@ export async function migrateProject(cwd, options = {}) {
     packs: { behavior: 'packs/behavior', resource: 'packs/resource' },
     uuids: { behavior: uuid(), resource: uuid() },
   };
-
-  await fs.mkdir(behavior, { recursive: true });
-  await fs.mkdir(resource, { recursive: true });
+  const behavior = safeProjectPath(root, project.packs.behavior, 'behavior pack path');
+  const resource = safeProjectPath(root, project.packs.resource, 'resource pack path');
   if (!options.keepLayout) {
-    await moveIfPresent(path.join(root, 'behavior_pack'), behavior);
-    await moveIfPresent(path.join(root, 'resource_pack'), resource);
+    await moveContents(path.join(root, 'behavior_pack'), behavior);
+    await moveContents(path.join(root, 'resource_pack'), resource);
+  } else {
+    await fs.mkdir(behavior, { recursive: true });
+    await fs.mkdir(resource, { recursive: true });
   }
   await writeJson(modernFile, project);
   await syncManifests(root, project);
-  if (await exists(legacyFile)) await fs.rm(legacyFile, { force: true });
-  if (await exists(path.join(root, '.mc-audit.json'))) await fs.rm(path.join(root, '.mc-audit.json'), { force: true });
+  await fs.rm(legacyFile, { force: true });
+  await fs.rm(path.join(root, '.mc-audit.json'), { force: true });
   return { migrated: true, project: modernFile, layout: options.keepLayout ? 'legacy-kept' : 'v4' };
 }
