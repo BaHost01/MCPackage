@@ -1,12 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { CONFIG, exists, readJson, uuid, identifier } from './core.js';
+import { CONFIG, exists, readJson, uuid, identifier, safeProjectPath } from './core.js';
 
 export async function loadProject(cwd) {
   const file = path.join(cwd, CONFIG);
-  if (!(await exists(file))) throw new Error(`No ${CONFIG} found. Run \"mcpackage init\" first.`);
+  if (!(await exists(file))) throw new Error(`No ${CONFIG} found. Run "mcpackage init" first.`);
   const project = await readJson(file);
-  if (!project.name || !project.namespace) throw new Error(`${CONFIG} requires name and namespace`);
+  if (!project || typeof project !== 'object' || Array.isArray(project)) throw new Error(`${CONFIG} must contain a JSON object.`);
+  if (typeof project.name !== 'string' || !project.name.trim()) throw new Error(`${CONFIG}.name must be a non-empty string.`);
+  if (typeof project.namespace !== 'string' || !/^[a-z0-9_-]+$/.test(project.namespace)) throw new Error(`${CONFIG}.namespace must contain only lowercase letters, numbers, _ or -.`);
+  if (!project.packs || typeof project.packs !== 'object') throw new Error(`${CONFIG}.packs is required.`);
+  project.packs.behavior = project.packs.behavior || 'packs/behavior';
+  project.packs.resource = project.packs.resource || 'packs/resource';
+  safeProjectPath(cwd, project.packs.behavior, 'behavior pack path');
+  safeProjectPath(cwd, project.packs.resource, 'resource pack path');
+  if (project.build?.outDir) safeProjectPath(cwd, project.build.outDir, 'build output path');
   return project;
 }
 
@@ -22,8 +30,8 @@ export function manifest(project, type, dependency) {
 }
 
 export async function syncManifests(cwd, project) {
-  const behavior = path.join(cwd, project.packs.behavior, 'manifest.json');
-  const resource = path.join(cwd, project.packs.resource, 'manifest.json');
+  const behavior = safeProjectPath(cwd, path.join(project.packs.behavior, 'manifest.json'), 'behavior manifest path');
+  const resource = safeProjectPath(cwd, path.join(project.packs.resource, 'manifest.json'), 'resource manifest path');
   await fs.mkdir(path.dirname(behavior), { recursive: true });
   await fs.mkdir(path.dirname(resource), { recursive: true });
   const rp = manifest(project, 'resource');
