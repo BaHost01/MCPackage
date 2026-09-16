@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { CONFIG, exists, readJson, uuid, identifier, safeProjectPath } from './core.js';
+import { CONFIG, exists, readJson, uuid, identifier, safeProjectPath, assertNoSymlinkPath } from './core.js';
 
 export async function loadProject(cwd) {
   const file = path.join(cwd, CONFIG);
@@ -12,9 +12,14 @@ export async function loadProject(cwd) {
   if (!project.packs || typeof project.packs !== 'object') throw new Error(`${CONFIG}.packs is required.`);
   project.packs.behavior = project.packs.behavior || 'packs/behavior';
   project.packs.resource = project.packs.resource || 'packs/resource';
-  safeProjectPath(cwd, project.packs.behavior, 'behavior pack path');
-  safeProjectPath(cwd, project.packs.resource, 'resource pack path');
-  if (project.build?.outDir) safeProjectPath(cwd, project.build.outDir, 'build output path');
+  const behavior = safeProjectPath(cwd, project.packs.behavior, 'behavior pack path');
+  const resource = safeProjectPath(cwd, project.packs.resource, 'resource pack path');
+  await assertNoSymlinkPath(cwd, behavior);
+  await assertNoSymlinkPath(cwd, resource);
+  if (project.build?.outDir) {
+    const out = safeProjectPath(cwd, project.build.outDir, 'build output path');
+    await assertNoSymlinkPath(cwd, out);
+  }
   return project;
 }
 
@@ -32,6 +37,8 @@ export function manifest(project, type, dependency) {
 export async function syncManifests(cwd, project) {
   const behavior = safeProjectPath(cwd, path.join(project.packs.behavior, 'manifest.json'), 'behavior manifest path');
   const resource = safeProjectPath(cwd, path.join(project.packs.resource, 'manifest.json'), 'resource manifest path');
+  await assertNoSymlinkPath(cwd, behavior);
+  await assertNoSymlinkPath(cwd, resource);
   await fs.mkdir(path.dirname(behavior), { recursive: true });
   await fs.mkdir(path.dirname(resource), { recursive: true });
   const rp = manifest(project, 'resource');
