@@ -1,47 +1,13 @@
 {
   "name": "mcpackage",
-  "version": "3.0.0",
-  "description": "Zero-dependency CLI to scaffold, validate, build and deploy Minecraft Bedrock add-ons",
-  "keywords": [
-    "minecraft",
-    "bedrock",
-    "addon",
-    "add-on",
-    "behavior-pack",
-    "resource-pack",
-    "mcaddon",
-    "mcpack",
-    "cli"
-  ],
-  "homepage": "https://github.com/BaHost01/MCPackage#readme",
-  "bugs": {
-    "url": "https://github.com/BaHost01/MCPackage/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/BaHost01/MCPackage.git"
-  },
+  "version": "4.0.0",
+  "description": "Zero-dependency, cross-platform Minecraft Bedrock add-on toolkit",
   "type": "module",
-  "bin": {
-    "mcpackage": "bin/mcpackage.js",
-    "mcpkg": "bin/mcpackage.js"
-  },
-  "files": [
-    "bin",
-    "src",
-    "schema",
-    "CHANGELOG.md"
-  ],
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "scripts": {
-    "test": "node --test",
-    "test:watch": "node --test --watch",
-    "check": "node --check bin/mcpackage.js && node bin/mcpackage.js --version"
-  },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  }
+  "bin": { "mcpackage": "bin/mcpackage.js", "mcpkg": "bin/mcpackage.js" },
+  "files": ["bin", "src", "schema"],
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test test/v4.test.js", "check": "node --check bin/mcpackage.js && node bin/mcpackage.js version" },
+  "keywords": ["minecraft", "bedrock", "addon", "mcaddon", "cli"],
+  "license": "MIT",
+  "publishConfig": { "access": "public", "provenance": true }
 }
