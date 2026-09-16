@@ -23,21 +23,29 @@ export function slug(value) { return String(value).trim().toLowerCase().replace(
 export function identifier(namespace, name) { return `${namespace}:${slug(name).replace(/-/g, '_')}`; }
 export function projectFile(cwd) { return path.join(cwd, CONFIG); }
 
-// Parallel directory traversal is noticeably faster on large add-ons while
-// keeping output deterministic by sorting each directory before descending.
-export async function walk(dir, out = []) {
+export function isWithin(root, target) {
+  const relative = path.relative(path.resolve(root), path.resolve(target));
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+export function safeProjectPath(root, value, label = 'path') {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`Invalid ${label}.`);
+  const target = path.resolve(root, value);
+  if (!isWithin(root, target)) throw new Error(`Unsafe ${label}: it must stay inside the project directory.`);
+  return target;
+}
+
+export async function walk(dir, out = [], { rejectSymlinks = true } = {}) {
   if (!(await exists(dir))) return out;
-  const entries = (await fs.readdir(dir, { withFileTypes: true }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const files = [];
-  const directories = [];
+  const entries = (await fs.readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) directories.push(full);
-    else files.push(full);
+    if (entry.isSymbolicLink()) {
+      if (rejectSymlinks) throw new Error(`Symlink is not allowed in packaged projects: ${full}`);
+      continue;
+    }
+    if (entry.isDirectory()) await walk(full, out, { rejectSymlinks });
+    else if (entry.isFile()) out.push(full);
   }
-  out.push(...files);
-  const nested = await Promise.all(directories.map((child) => walk(child, [])));
-  for (const childFiles of nested) out.push(...childFiles);
   return out;
 }
