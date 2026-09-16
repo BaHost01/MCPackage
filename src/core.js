@@ -9,15 +9,8 @@ export async function exists(file) {
   try { await fs.access(file); return true; } catch { return false; }
 }
 
-export async function readJson(file) {
-  return JSON.parse(await fs.readFile(file, 'utf8'));
-}
-
-export async function writeJson(file, value) {
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, JSON.stringify(value, null, 2) + '\n');
-}
-
+export async function readJson(file) { return JSON.parse(await fs.readFile(file, 'utf8')); }
+export async function writeJson(file, value) { await fs.mkdir(path.dirname(file), { recursive: true }); await fs.writeFile(file, JSON.stringify(value, null, 2) + '\n'); }
 export function uuid() { return randomUUID(); }
 export function slug(value) { return String(value).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'addon'; }
 export function identifier(namespace, name) { return `${namespace}:${slug(name).replace(/-/g, '_')}`; }
@@ -33,6 +26,24 @@ export function safeProjectPath(root, value, label = 'path') {
   const target = path.resolve(root, value);
   if (!isWithin(root, target)) throw new Error(`Unsafe ${label}: it must stay inside the project directory.`);
   return target;
+}
+
+export async function assertNoSymlinkPath(root, target) {
+  const rootPath = path.resolve(root);
+  const targetPath = path.resolve(target);
+  if (!isWithin(rootPath, targetPath)) throw new Error(`Unsafe path: ${targetPath}`);
+  const relative = path.relative(rootPath, targetPath);
+  let current = rootPath;
+  for (const part of relative ? relative.split(path.sep) : []) {
+    current = path.join(current, part);
+    try {
+      const stat = await fs.lstat(current);
+      if (stat.isSymbolicLink()) throw new Error(`Symlink is not allowed in project paths: ${current}`);
+    } catch (error) {
+      if (error?.code === 'ENOENT') break;
+      throw error;
+    }
+  }
 }
 
 export async function walk(dir, out = [], { rejectSymlinks = true } = {}) {
