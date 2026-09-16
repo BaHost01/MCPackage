@@ -6,6 +6,7 @@ import { checkForUpdate } from './update.js';
 import { formatError } from './errors.js';
 
 const VERSION = '4.0.0';
+const CONFIG_KEYS = new Set(['name', 'namespace', 'description', 'version', 'authors', 'license', 'minEngineVersion']);
 const help = `mcpackage ${VERSION}\n\nUsage: mcpackage <command> [options]\n\nCommands:\n  init [name]       Create a Bedrock add-on project\n  add <type> <name> Generate content (entity/item/block/recipe)\n  migrate           Upgrade a legacy v2 project to the v4 layout\n  lint              Validate project structure and JSON\n  build             Create a .mcaddon archive\n  manifest          Regenerate pack manifests\n  stats             Show project statistics\n  doctor            Diagnose project setup\n  config <key> [v]  Read or write project configuration\n  clean             Remove build output\n  version           Print version\n\nGlobal:\n  --json                Machine-readable output\n  -C, --cwd <dir>      Run in another directory\n  --skip-lint           Skip lint before build\n  --no-update-check    Disable the npm update check\n  -y, --yes             Accept confirmations\n  --keep-layout         Keep legacy layout during migrate\n`;
 
 function parse(argv) {
@@ -40,10 +41,7 @@ export async function run(argv) {
   try {
     if (!command || command === '--help' || command === 'help') return output(help, options.json);
     if (command === 'version' || command === '--version') return output(VERSION, options.json);
-
-    if (!options.noUpdateCheck && !options.json) {
-      await checkForUpdate(VERSION, { interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY) });
-    }
+    if (!options.noUpdateCheck && !options.json) await checkForUpdate(VERSION, { interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY) });
 
     if (command === 'init') {
       const { initProject } = await import('./init.js');
@@ -85,13 +83,17 @@ export async function run(argv) {
     if (command === 'config') {
       const p = await loadProject(cwd); const key = pos[0];
       if (!key) return output(p, options.json);
+      if (!CONFIG_KEYS.has(key)) throw new Error(`Configuration key '${key}' is read-only or not supported.`);
       if (pos.length === 1) return output(p[key], options.json);
       let v = pos.slice(1).join(' '); try { v = JSON.parse(v); } catch {}
+      if (key === 'namespace' && (typeof v !== 'string' || !/^[a-z0-9_-]+$/.test(v))) throw new Error('namespace must contain only lowercase letters, numbers, _ or -.');
+      if (key === 'minEngineVersion' && (!Array.isArray(v) || v.length !== 3 || v.some((n) => !Number.isInteger(n) || n < 0))) throw new Error('minEngineVersion must be an array of three non-negative integers.');
       p[key] = v; await writeJson(path.join(cwd, CONFIG), p);
       return output(p[key], options.json);
     }
     if (command === 'clean') {
-      await fs.rm(path.join(cwd, 'dist'), { recursive: true, force: true });
+      const target = path.join(cwd, 'dist');
+      await fs.rm(target, { recursive: true, force: true });
       return output({ cleaned: true }, options.json);
     }
     throw new Error(`Unknown command: ${command}. Run mcpackage --help`);
