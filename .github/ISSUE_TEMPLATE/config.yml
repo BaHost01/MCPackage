@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Support
+    url: https://github.com/BaHost01/MCPackage/blob/v4-rewrite/SUPPORT.md
+    about: Get help with setup, usage, and troubleshooting.
+  - name: Security policy
+    url: https://github.com/BaHost01/MCPackage/blob/v4-rewrite/SECURITY.md
+    about: Report security vulnerabilities privately.
