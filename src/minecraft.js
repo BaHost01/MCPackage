@@ -33,21 +33,23 @@ function compareVersion(a, b) {
 
 function extractVersions(html) {
   const stable = [...html.matchAll(/Minecraft:\s*Bedrock Edition\s+(\d+\.\d+(?:\.\d+)?)/gi)]
-    .map((m) => m[1])
-    .filter((v) => /^26\./.test(v));
-  const preview = [...html.matchAll(/Minecraft\s+Beta\s*&\s*Preview\s*-\s*(\d+\.\d+)(?:\.(\d+)(?:\/\d+)?)?/gi)]
-    .map((m) => `${m[1]}${m[2] ? `.${m[2]}` : ''}`)
-    .filter((v) => /^26\./.test(v));
+    .map((m) => m[1]).filter((v) => /^26\./.test(v));
+  const preview = [];
+  for (const match of html.matchAll(/Minecraft\s+Beta\s*&\s*Preview\s*-\s*(\d+\.\d+)(?:\.(\d+)(?:\/(\d+))?)?/gi)) {
+    const base = match[1];
+    if (!base.startsWith('26.')) continue;
+    if (match[2]) preview.push(`${base}.${match[2]}`);
+    if (match[3]) preview.push(`${base}.${match[3]}`);
+    if (!match[2]) preview.push(base);
+  }
 
   const latestStable = stable.sort(compareVersion).at(-1) || FALLBACK.stable;
   const latestPreview = preview.sort(compareVersion).at(-1) || FALLBACK.preview;
-  const [major, minor] = numericParts(latestStable);
-  const patch = numericParts(latestStable)[2] ?? 0;
-
+  const parts = numericParts(latestStable);
   return {
     stable: latestStable,
     preview: latestPreview,
-    minEngineVersion: [1, minor, patch],
+    minEngineVersion: [1, parts[1] ?? 26, parts[2] ?? 0],
     source: 'minecraft-feedback',
     fetchedAt: new Date().toISOString(),
   };
@@ -55,8 +57,7 @@ function extractVersions(html) {
 
 async function readCache() {
   try {
-    const file = cacheFile();
-    const data = JSON.parse(await fs.readFile(file, 'utf8'));
+    const data = JSON.parse(await fs.readFile(cacheFile(), 'utf8'));
     if (Date.now() - Date.parse(data.fetchedAt) < CACHE_TTL) return data;
   } catch {}
   return null;
@@ -88,8 +89,7 @@ export async function getMinecraftVersions({ timeout = 2500, force = false } = {
     await writeCache(data);
     return data;
   } catch {
-    const cached = await readCache();
-    return cached || FALLBACK;
+    return (await readCache()) || FALLBACK;
   } finally {
     clearTimeout(timer);
   }
